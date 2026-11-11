@@ -1,0 +1,8 @@
+inst/doc/
+vignettes/*.html
+vignettes/*.pdf
+vignettes/*.tex
+vignettes/*_files/
+vignettes/*_cache/
+dist/
+Rplots.pdf

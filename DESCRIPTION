@@ -1,0 +1,30 @@
+Package: coo
+Type: Package
+Title: Pigeon-Inspired Discrete and Continuous Colour Scales
+Version: 0.1.0
+Authors@R: c(
+    person("A.", "Steen", role = c("aut", "cre"), email = "asteen@example.com")
+    )
+Author: A. Steen [aut, cre]
+Maintainer: A. Steen <asteen@example.com>
+Description: Provides pigeon-inspired colour palettes, direct mapping of data
+    to colours, and colour and fill scales for 'ggplot2'. Discrete data use
+    nested palettes of up to seven colours. Continuous data use a smooth
+    teal-to-violet ramp with a feather-gray or wing-charcoal centre and
+    configurable limits and midpoint.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+Imports:
+    ggplot2 (>= 4.0.0),
+    graphics,
+    grDevices,
+    scales (>= 1.3.0),
+    stats
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+Config/roxygen2/version: 8.0.0

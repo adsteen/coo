@@ -1,0 +1,152 @@
+---
+title: "Getting started with coo"
+output:
+  rmarkdown::pdf_document:
+    latex_engine: pdflatex
+    fig_crop: false
+    highlight: tango
+fontsize: 11pt
+geometry: margin=0.8in
+header-includes:
+  - \usepackage{float}
+vignette: >
+  %\VignetteIndexEntry{Getting started with coo}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r options, include=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  fig.width = 6.3, fig.height = 2.5,
+  fig.align = "center", fig.pos = "H",
+  dev = "pdf", cache = FALSE
+)
+```
+
+`coo` provides pigeon-inspired colours for categories and continuous
+measurements. This short workflow uses R's built-in `mtcars` data to compare
+fuel economy and weight, then shows how the same scales work with fills and
+direct colour mapping.
+
+## Compare categories
+
+Load the packages and mark the cylinder and gear counts as categories.
+
+```{r setup}
+library(coo)
+library(ggplot2)
+cars <- transform(mtcars, cylinders = factor(cyl), gears = factor(gear))
+```
+
+Create a scatterplot and map cylinder classes to the discrete palette.
+
+```{r categorical, fig.cap="Fuel economy and weight, coloured by cylinder class."}
+p <- ggplot(cars, aes(wt, mpg)) +
+  geom_point(size = 2.6) +
+  labs(x = "Weight (1,000 lb)", y = "Fuel economy (mpg)") +
+  theme_minimal(base_size = 11)
+p + aes(colour = cylinders) + scale_color_coo(name = "Cylinders")
+```
+
+The scale selects discrete colours because `cylinders` is a factor. Factors,
+character vectors, and logical vectors are categorical; numeric vectors,
+including integers, are continuous. For numeric category codes, use a factor
+or `scale_color_coo(type = "discrete")`.
+
+Discrete palettes add teal, violet, amber, charcoal, rose, slate blue, then
+feather gray. Two categories use teal and violet; six omit feather gray.
+The maximum is seven, and requesting more produces an error. For a colour
+vector, use `coo_palette(nlevels(cars$cylinders))`.
+
+\newpage
+
+## Show a continuous measurement
+
+Keep the same scatterplot, but colour each car by horsepower.
+
+```{r continuous, fig.cap="The same cars, coloured by horsepower on the continuous ramp."}
+p + aes(colour = hp) + scale_color_coo(name = "Horsepower")
+```
+
+Numeric data automatically use the continuous ramp from teal through pale
+feather gray to violet, interpolated in CIELAB space. It is independent of
+the seven discrete colours.
+By default, the observed range uses the full ramp, and pale gray marks its
+midpoint. Here, the limits are `r min(cars$hp)` and `r max(cars$hp)` hp, so the
+centre is `r mean(range(cars$hp))` hp. A constant range maps to pale gray.
+
+For a dark centre, set `mid_color` to wing charcoal. This changes the colour
+at the centre; `midpoint` separately controls the numeric value placed there.
+
+```{r charcoal-centre}
+charcoal_plot <- p + aes(colour = hp) +
+  scale_color_coo(name = "Horsepower", mid_color = "#262D33")
+```
+
+To compare plots containing different subsets of cars, reuse the full-data
+limits rather than letting each subset choose its own range.
+
+```{r common-limits}
+hp_limits <- range(cars$hp)
+efficient_cars <- subset(cars, mpg > median(cars$mpg))
+efficient_plot <- ggplot(efficient_cars, aes(wt, mpg, colour = hp)) +
+  geom_point() + scale_color_coo(limits = hp_limits)
+```
+
+For departures from average horsepower, subtract the mean and map zero to
+pale gray. Symmetric limits give both halves of the ramp equal space.
+
+```{r centred-values}
+hp_difference <- cars$hp - mean(cars$hp)
+bound <- max(abs(hp_difference))
+centred_colours <- coo_colors(hp_difference, midpoint = 0,
+                             limits = c(-bound, bound))
+```
+
+An explicit `midpoint` is in original data units and uses
+`scales::rescale_mid()`. With asymmetric limits, the nearer endpoint uses only
+part of its half of the ramp. Transformations apply before rescaling:
+`scale_color_coo(transform = "log10")` has a geometric centre by default.
+Use `reverse = TRUE` to swap teal and violet.
+
+\newpage
+
+## Use fills and reuse colour assignments
+
+For filled shapes, use `scale_fill_coo()` with the same discrete/continuous
+selection and controls.
+
+```{r filled-bars, fig.cap="Cylinder classes within each gear-count group."}
+ggplot(cars, aes(gears, fill = cylinders)) +
+  geom_bar() + scale_fill_coo(name = "Cylinders") +
+  labs(x = "Gears", y = "Number of cars") +
+  theme_minimal(base_size = 11)
+```
+
+Factor levels control category order. To keep assignments fixed when some
+classes are absent, supply the same `limits` or named colours across plots.
+The same named mapping can be used outside ggplot2.
+
+```{r stable-categories}
+cylinder_colours <- setNames(
+  coo_palette(nlevels(cars$cylinders)), levels(cars$cylinders)
+)
+fixed_scale <- scale_color_coo(values = cylinder_colours)
+coo_colors(cars$cylinders[1:6], values = cylinder_colours)
+```
+
+`coo_colors()` returns one colour per observation, suitable for a base R
+plot's `col` argument. For example, `coo_colors(cars$hp, limits = hp_limits)`
+maps horsepower consistently with the continuous example above.
+
+Missing values use `na.value = "grey50"` and do not consume a categorical
+colour. Values outside numeric limits are missing by default; use
+`oob = scales::squish` to clamp them instead. Both settings work in the scales
+and in `coo_colors()`.
+
+Preview all approved palettes with `display_coo()`. For the full argument
+reference, see `?scale_color_coo`, `?coo_colors`, and `?coo_palette`.
+`scale_colour_coo()` and `coo_colours()` are spelling aliases.
+Colour-vision simulations informed the palette, but some pairs remain closer
+under red-green deficiencies; pair colours with labels or shapes when needed.
